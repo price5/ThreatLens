@@ -1,5 +1,6 @@
 // Pure VirusTotal-based web application vulnerability scanner
 import { z } from 'zod';
+import { getVirusTotalAPI, VirusTotalUrlReport } from './virustotal';
 
 export interface Vulnerability {
   type: string;
@@ -85,7 +86,7 @@ export class VulnerabilityScanner {
     return vulnerabilities;
   }
 
-  private generateSecurityRecommendations(url: string, virusTotalResults: any): Vulnerability[] {
+  private generateSecurityRecommendations(url: string, virusTotalResults: VirusTotalUrlReport | null): Vulnerability[] {
     const recommendations: Vulnerability[] = [];
     
     // Domain-based security recommendations
@@ -113,7 +114,7 @@ export class VulnerabilityScanner {
     return recommendations;
   }
 
-  private createExecutiveSummary(url: string, vulnerabilities: Vulnerability[], virusTotalResults: any): string {
+  private createExecutiveSummary(url: string, vulnerabilities: Vulnerability[], virusTotalResults: VirusTotalUrlReport | null): string {
     const highCount = vulnerabilities.filter(v => v.severity === 'High').length;
     const mediumCount = vulnerabilities.filter(v => v.severity === 'Medium').length;
     const lowCount = vulnerabilities.filter(v => v.severity === 'Low').length;
@@ -153,14 +154,35 @@ export class VulnerabilityScanner {
       // Analyze common web vulnerabilities
       const commonVulnerabilities = this.analyzeCommonVulnerabilities(url);
       
+      // Get VirusTotal analysis
+      let virusTotalResults: VirusTotalUrlReport | null = null;
+      try {
+        const virusTotalAPI = getVirusTotalAPI();
+        virusTotalResults = await virusTotalAPI.getUrlReport(url);
+      } catch (error) {
+        console.warn('VirusTotal analysis failed:', error);
+      }
+      
       // Generate security recommendations
-      const recommendations = this.generateSecurityRecommendations(url, null);
+      const recommendations = this.generateSecurityRecommendations(url, virusTotalResults);
       
       // Combine all vulnerabilities
-      const allVulnerabilities = [...commonVulnerabilities, ...recommendations];
+      let allVulnerabilities = [...commonVulnerabilities, ...recommendations];
+      
+      // Add VirusTotal threats as vulnerabilities if detected
+      if (virusTotalResults && virusTotalResults.positives > 0) {
+        const malwareVulnerability = {
+          type: 'Malware/Threat Detection',
+          severity: 'High' as const,
+          description: `VirusTotal analysis detected malicious content. ${virusTotalResults.positives} out of ${virusTotalResults.total} security engines flagged this URL as dangerous.`,
+          potentialImpact: 'This URL may distribute malware, engage in phishing, or participate in other malicious activities that could harm users.',
+          remediation: 'Immediately block access to this URL, investigate the source of the compromise, and scan connected systems for malware. Consider reporting the URL to appropriate security authorities.'
+        };
+        allVulnerabilities.unshift(malwareVulnerability);
+      }
       
       // Generate executive summary
-      const executiveSummary = this.createExecutiveSummary(url, allVulnerabilities, null);
+      const executiveSummary = this.createExecutiveSummary(url, allVulnerabilities, virusTotalResults);
       
       return {
         vulnerabilities: allVulnerabilities,
