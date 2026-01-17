@@ -282,8 +282,8 @@ A: Run `npm install` to ensure all dependencies are up to date
 ### **Getting Help**
 
 - 📖 Check the [Documentation](./docs/)
-- 🐛 Report issues on [GitHub Issues](https://github.com/your-repo/threatlens/issues)
-- 💬 Join our [Discussions](https://github.com/your-repo/threatlens/discussions)
+- 🐛 Report issues on [GitHub Issues](https://github.com/price5/ThreatLens/issues)
+- 💬 Join our [Discussions](https://github.com/price5/ThreatLens/discussions)
 
 ---
 
