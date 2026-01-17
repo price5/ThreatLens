@@ -212,3 +212,31 @@ export function getVirusTotalAPI(): VirusTotalAPI {
   }
   return virusTotalAPI;
 }
+
+export async function scanWithVirusTotal(url: string) {
+  const apiKey = process.env.NEXT_PUBLIC_VIRUSTOTAL_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error('VirusTotal API key is missing');
+  }
+
+  try {
+    const response = await fetch('https://www.virustotal.com/api/v3/urls', {
+      method: 'POST',
+      headers: {
+        'x-apikey': apiKey,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ url }).toString(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`VirusTotal API error: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('VirusTotal scan failed:', error);
+    throw error;
+  }
+}
