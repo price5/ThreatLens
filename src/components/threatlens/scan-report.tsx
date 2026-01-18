@@ -40,7 +40,7 @@ export function ScanReport({ data, url, onSelectVulnerability }: ScanReportProps
 
     const handleDownload = () => {
         let report = `# ThreatLens Vulnerability Report for ${url}\n\n`;
-        report += `## Executive Summary\n${data.executiveSummary}\n\n`;
+        report += `## Executive Summary\n\n${data.executiveSummary}\n\n`;
         report += '---\n\n';
         report += `## Vulnerabilities Found\n\n`;
         report += `*   **High:** ${counts.High}\n`;
@@ -48,7 +48,7 @@ export function ScanReport({ data, url, onSelectVulnerability }: ScanReportProps
         report += `*   **Low:** ${counts.Low}\n\n`;
 
         data.vulnerabilities.forEach((v: Vulnerability) => {
-            report += `### ${v.type} (Severity: ${v.severity})\n\n`;
+            report += `### ${v.type} (${v.severity} Severity)\n\n`;
             report += `**Description:**\n${v.description}\n\n`;
             report += `**Potential Impact:**\n${v.potentialImpact}\n\n`;
             report += `**Remediation:**\n${v.remediation}\n\n`;
@@ -110,7 +110,9 @@ export function ScanReport({ data, url, onSelectVulnerability }: ScanReportProps
                     <CardTitle>Executive Summary</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">{data.executiveSummary}</p>
+                    <div className="text-muted-foreground whitespace-pre-line">
+                        {data.executiveSummary}
+                    </div>
                 </CardContent>
             </Card>
 

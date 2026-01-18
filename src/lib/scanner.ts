@@ -88,28 +88,44 @@ export class VulnerabilityScanner {
 
   private generateSecurityRecommendations(url: string, virusTotalResults: VirusTotalUrlReport | null): Vulnerability[] {
     const recommendations: Vulnerability[] = [];
-    
-    // Domain-based security recommendations
     const urlObj = new URL(url);
     const domain = urlObj.hostname;
 
-    // Check for missing security headers (assumed)
-    recommendations.push({
-      type: 'Security Headers',
-      severity: 'Medium',
-      description: 'Missing security headers could expose the application to various attacks.',
-      potentialImpact: 'Without proper security headers, the application is vulnerable to clickjacking, XSS, and other client-side attacks.',
-      remediation: 'Implement security headers including: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, and Strict-Transport-Security.'
-    });
+    // Only add recommendations for specific conditions, not as assumptions
+    
+    // Check for potential admin panel exposure via common paths
+    const adminPaths = ['/admin', '/wp-admin', '/administrator', '/console'];
+    if (adminPaths.some(path => url.toLowerCase().includes(path))) {
+      recommendations.push({
+        type: 'Admin Panel Exposure',
+        severity: 'Medium',
+        description: `URL may contain administrative access paths that could be exposed.`,
+        potentialImpact: 'Administrative interfaces could be targeted by attackers attempting to gain unauthorized access.',
+        remediation: 'Implement IP restrictions, strong authentication, and consider moving admin panels to non-standard paths.'
+      });
+    }
 
-    // Check for potential CSRF (assumed vulnerability)
-    recommendations.push({
-      type: 'CSRF Protection',
-      severity: 'Medium',
-      description: 'Cross-Site Request Forgery (CSRF) tokens may not be properly implemented.',
-      potentialImpact: 'Attackers could force authenticated users to perform unintended actions on the website.',
-      remediation: 'Implement anti-CSRF tokens, validate the Origin and Referer headers, and use SameSite cookie attributes.'
-    });
+    // Check for potential file upload vulnerabilities
+    if (url.toLowerCase().includes('upload') || url.toLowerCase().includes('file')) {
+      recommendations.push({
+        type: 'File Upload Security',
+        severity: 'Medium',
+        description: `URL references file upload functionality which requires proper security controls.`,
+        potentialImpact: 'Insecure file uploads could allow malicious file execution or data breaches.',
+        remediation: 'Validate file types, implement virus scanning, store files outside web root, and use secure file naming conventions.'
+      });
+    }
+
+    // Check for potential API endpoints
+    if (url.toLowerCase().includes('api') || url.toLowerCase().includes('service') || url.toLowerCase().includes('rest')) {
+      recommendations.push({
+        type: 'API Security',
+        severity: 'Low',
+        description: `URL appears to reference an API endpoint which should implement proper security controls.`,
+        potentialImpact: 'Insecure APIs could lead to data exposure, unauthorized access, or service abuse.',
+        remediation: 'Implement API authentication, rate limiting, input validation, and use HTTPS with proper TLS configuration.'
+      });
+    }
 
     return recommendations;
   }
@@ -119,32 +135,31 @@ export class VulnerabilityScanner {
     const mediumCount = vulnerabilities.filter(v => v.severity === 'Medium').length;
     const lowCount = vulnerabilities.filter(v => v.severity === 'Low').length;
 
-    let summary = `Security scan completed for ${url}.\n\n`;
-    summary += `**Vulnerability Summary:**\n`;
-    summary += `- High Severity: ${highCount}\n`;
-    summary += `- Medium Severity: ${mediumCount}\n`;
-    summary += `- Low Severity: ${lowCount}\n`;
-    summary += `- Total Issues: ${vulnerabilities.length}\n\n`;
+    const virusTotalAnalysis = virusTotalResults 
+      ? virusTotalResults.positives === 0 
+        ? `✅ Clean: No malware detected by ${virusTotalResults.total} security engines.`
+        : `⚠️ Threat Detected: ${virusTotalResults.positives}/${virusTotalResults.total} security engines flagged this URL.`
+      : '⚠️ VirusTotal analysis unavailable';
 
-    if (virusTotalResults) {
-      summary += `**VirusTotal Analysis:**\n`;
-      if (virusTotalResults.positives === 0) {
-        summary += `✅ Clean: No malware detected by ${virusTotalResults.total} security engines.\n`;
-      } else {
-        summary += `⚠️ Threat Detected: ${virusTotalResults.positives}/${virusTotalResults.total} security engines flagged this URL.\n`;
-      }
-      summary += `\n`;
-    }
+    const riskAssessment = highCount > 0 
+      ? `🚨 **Critical Risk:** ${highCount} high severity vulnerabilities require immediate attention.`
+      : mediumCount > 0 
+        ? `⚠️ **Moderate Risk:** ${mediumCount} medium severity vulnerabilities should be addressed soon.`
+        : `✅ **Low Risk:** No critical vulnerabilities detected. Continue monitoring.`;
 
-    if (highCount > 0) {
-      summary += `**Priority Action Required:** ${highCount} high severity vulnerabilities need immediate attention.\n`;
-    } else if (mediumCount > 0) {
-      summary += `**Action Recommended:** ${mediumCount} medium severity vulnerabilities should be addressed soon.\n`;
-    } else {
-      summary += `**Good Security Posture:** No critical vulnerabilities detected, but continuous monitoring is recommended.\n`;
-    }
+    return `Security scan completed for ${url}.
 
-    return summary;
+**Vulnerability Summary:**
+• High Severity: ${highCount}
+• Medium Severity: ${mediumCount}  
+• Low Severity: ${lowCount}
+• Total Issues: ${vulnerabilities.length}
+
+**VirusTotal Analysis:**
+${virusTotalAnalysis}
+
+**Risk Assessment:**
+${riskAssessment}`;
   }
 
   async scanWebApplication(input: ScanInput): Promise<ScanResult> {
