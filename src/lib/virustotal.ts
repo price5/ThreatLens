@@ -33,6 +33,41 @@ export interface VirusTotalUrlReport {
   }>;
 }
 
+export interface VirusTotalAnalysisResult {
+  data: {
+    id: string;
+    type: string;
+    attributes: {
+      date: number;
+      results: Record<string, {
+        category: 'undetected' | 'malicious' | 'suspicious' | 'harmless' | 'timeout' | 'failure' | 'type-unsupported';
+        engine_name: string;
+        engine_update: string;
+        engine_version: string;
+        method: string;
+        result: string | null;
+      }>;
+      stats: {
+        'confirmed-timeout': number;
+        failure: number;
+        harmless: number;
+        malicious: number;
+        suspicious: number;
+        timeout: number;
+        'type-unsupported': number;
+        undetected: number;
+      };
+      status: 'completed' | 'queued' | 'in-progress';
+    };
+  };
+  meta?: {
+    url_info?: {
+      id: string;
+      url: string;
+    };
+  };
+}
+
 export interface VirusTotalDomainReport {
   domain: string;
   responseCode: number;

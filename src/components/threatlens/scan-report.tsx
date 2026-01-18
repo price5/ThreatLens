@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, ShieldAlert, ShieldCheck, Download } from 'lucide-react';
 import React from 'react';
+import { VirusTotalResults } from './virus-total-results';
 
 type ScanReportProps = {
   data: ScanResult;
@@ -115,6 +116,11 @@ export function ScanReport({ data, url, onSelectVulnerability }: ScanReportProps
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Enhanced VirusTotal Results */}
+            {data.virusTotalAnalysis && (
+                <VirusTotalResults results={data.virusTotalAnalysis} />
+            )}
 
             <Card>
                 <CardHeader>

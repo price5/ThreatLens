@@ -1,6 +1,6 @@
 // Pure VirusTotal-based web application vulnerability scanner
 import { z } from 'zod';
-import { getVirusTotalAPI, VirusTotalUrlReport } from './virustotal';
+import { getVirusTotalAPI, VirusTotalUrlReport, VirusTotalAnalysisResult } from './virustotal';
 
 export interface Vulnerability {
   type: string;
@@ -13,6 +13,7 @@ export interface Vulnerability {
 export interface ScanResult {
   vulnerabilities: Vulnerability[];
   executiveSummary: string;
+  virusTotalAnalysis?: VirusTotalUrlReport | VirusTotalAnalysisResult | null;
 }
 
 export interface ScanInput {
@@ -171,9 +172,16 @@ ${riskAssessment}`;
       
       // Get VirusTotal analysis
       let virusTotalResults: VirusTotalUrlReport | null = null;
+      let virusTotalAnalysis: VirusTotalAnalysisResult | null = null;
       try {
         const virusTotalAPI = getVirusTotalAPI();
+        // First try to get existing report
         virusTotalResults = await virusTotalAPI.getUrlReport(url);
+        
+        // If no existing report, try to get detailed analysis
+        if (!virusTotalResults || virusTotalResults.responseCode !== 1) {
+          virusTotalAnalysis = await virusTotalAPI.getUrlAnalysis(url);
+        }
       } catch (error) {
         console.warn('VirusTotal analysis failed:', error);
       }
@@ -201,7 +209,8 @@ ${riskAssessment}`;
       
       return {
         vulnerabilities: allVulnerabilities,
-        executiveSummary
+        executiveSummary,
+        virusTotalAnalysis: virusTotalAnalysis || virusTotalResults
       };
     } catch (error) {
       console.error('Error scanning web application:', error);
